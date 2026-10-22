@@ -3,6 +3,7 @@ package com.gathin.tvhome;
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.ActivityNotFoundException;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.media.tv.TvContract;
@@ -170,11 +171,14 @@ final class RemoteKeys {
             }
             return;
         }
+        // Start the app fresh: a background process keeps the screen it was left on (YouTube kept Subscriptions).
+        ctx.getSystemService(ActivityManager.class).killBackgroundProcesses(pkg);
         Intent open = ctx.getPackageManager().getLeanbackLaunchIntentForPackage(pkg);
         if (open == null) open = ctx.getPackageManager().getLaunchIntentForPackage(pkg);
         if (open == null) return;
         try {
-            ctx.startActivity(open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            // RESET_TASK_IF_NEEDED: a running app starts at its home, not on the screen it was left on.
+            ctx.startActivity(open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED));
         } catch (ActivityNotFoundException ignored) {
         }
     }

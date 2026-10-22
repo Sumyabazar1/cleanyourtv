@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- dock_scroll: soft shade at the top (clock, weather, pills) and the bottom (name, app row). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:gravity="top" android:height="200dp">
+        <shape android:shape="rectangle">
+            <gradient android:angle="270" android:startColor="#66000000" android:endColor="#00000000" />
+        </shape>
+    </item>
+    <item android:gravity="bottom" android:height="240dp">
+        <shape android:shape="rectangle">
+            <gradient android:angle="90" android:startColor="#99000000" android:endColor="#00000000" />
+        </shape>
+    </item>
+</layer-list>

@@ -165,6 +165,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private final Context ctx;
     private final int rowsBelowDock;
+    private final boolean dockScroll;
     private final boolean dockTitle;
     /** The owner's saved order (reorder button, Order): key -> rank. Empty when there is none or it no longer applies. */
     private Map<String, Integer> savedRanks = Collections.emptyMap();
@@ -218,6 +219,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.reducedMotion = cfg.reducedMotion;
         this.focusOvershoot = cfg.focusOvershoot;
         this.rowsBelowDock = cfg.rowsBelowDock;
+        this.dockScroll = cfg.dockScroll;
         this.dockTitle = cfg.dockTitle;
         this.dockRow = cfg.dockRow;
         this.restNameAlpha = cfg.alwaysShowNames ? 0.75f : 0f;
@@ -376,6 +378,13 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         int width = parent.getWidth() > 0 ? parent.getWidth() : parent.getMeasuredWidth();
         int inner = width - parent.getPaddingLeft() - parent.getPaddingRight();
         int w = tileWidthPx(inner, parent.getHeight(), dockSize, rowsBelowDock, dockTitle, dockRow, density), h = tileHeightPx(w);
+        // In the one horizontal row each item must be exactly one tile wide, or the row shows a single tile per screen.
+        if (dockScroll) {
+            RecyclerView.LayoutParams lp = new RecyclerView.LayoutParams(w, ViewGroup.LayoutParams.WRAP_CONTENT);
+            int gap = Math.round(8 * density);   // space between neighbouring tiles
+            lp.setMargins(gap, 0, gap, 0);
+            v.setLayoutParams(lp);
+        }
         View card = v.findViewById(R.id.card);
         ViewGroup.LayoutParams cardLp = card.getLayoutParams();
         cardLp.width = w;
@@ -415,7 +424,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         h.card.setFocusable(true);
         h.name.setText(e.name);
         // The dock has no labels, unless always_show_names asks for them (DockDecoration then makes room in the band).
-        h.name.setVisibility(dockRow && position < dockSize && restNameAlpha == 0f ? View.INVISIBLE : View.VISIBLE);
+        // The one row shows the focused app's name in the title above it, not under every tile.
+        h.name.setVisibility(dockScroll || dockRow && position < dockSize && restNameAlpha == 0f ? View.INVISIBLE : View.VISIBLE);
         boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
         h.name.setAlpha(focused ? 1f : restNameAlpha);
         h.card.setScaleX(focused && animations ? focusScale() : 1f);
@@ -452,6 +462,17 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         });
     }
 
+    /** The intent for a launch_actions entry (an action, or a link when it has a colon), or null when the app
+     *  should open normally: no entry, or the app does not answer it. Tiles and remote buttons both use it. */
+    static Intent actionIntent(Context ctx, String pkg, String action) {
+        if (action == null) return null;
+        Intent byAction = (action.contains(":") ? new Intent(Intent.ACTION_VIEW, Uri.parse(action))
+                : new Intent(action)).setPackage(pkg)
+                // No RESET_TASK_IF_NEEDED: a running app must get the link as a new intent, not restart at its home.
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        return ctx.getPackageManager().resolveActivity(byAction, 0) != null ? byAction : null;
+    }
+
     /** Opens the tile's activity by explicit component, with no extras: a card can name nothing else. */
     private void launch(Entry e) {
         if (e.kind == Entry.HOME_SETTINGS) {
@@ -465,12 +486,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         // TV apps launch with the same leanback intent as from the stock launcher or the remote, so an app
         // already running resumes instead of restarting; only phone apps added from the library use plain MAIN.
         if (leanbackPackages.contains(e.pkg)) i.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-        String action = launchActions.get(e.pkg);
-        if (action != null) {
-            Intent byAction = new Intent(action).setPackage(e.pkg)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-            if (ctx.getPackageManager().resolveActivity(byAction, 0) != null) i = byAction;
-        }
+        Intent byAction = actionIntent(ctx, e.pkg, launchActions.get(e.pkg));
+        if (byAction != null) i = byAction;
         try {
             ctx.startActivity(i);
             if (cinematic) LastOpened.record(ctx, e.pkg);

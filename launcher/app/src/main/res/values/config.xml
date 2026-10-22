@@ -18,9 +18,9 @@
     <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
     <string-array name="dock_apps">
         <item>com.netflix.ninja</item>
-        <item>com.amazon.amazonvideo.livingroom</item>
         <item>com.google.android.youtube.tv</item>
-        <item>in.startv.hotstar</item>
+        <item>com.mobicom.smarttv</item>
+        <item>com.kick.mobile</item>
     </string-array>
     <!-- With fewer dock_apps than columns (or a dock app that is not installed), the free dock slots take
          the first grid apps, so the dock never shows a gap. false leaves them empty (#162); a theme can
@@ -53,10 +53,12 @@
          the Live TV app normally instead of selecting a different input. See docs/devices/haam-r4.md. -->
     <string name="live_tv_input_id" translatable="false"></string>
 
-    <!-- Tiles that open a screen of the app instead of its start screen: "package=action", sent to that package.
-         A tile whose action no longer resolves opens the app normally. MagentaTV's program guide:
-         com.telekom.onetv.tv.pl=com.telekom.onetv.tv.pl.action.PROGRAM_GUIDE. -->
+    <!-- Tiles that open a screen of the app instead of its start screen: "package=action", sent to that package,
+         or "package=uri" for a link the app's VIEW filter takes. A tile whose action or link no longer resolves
+         opens the app normally. MagentaTV's program guide: com.telekom.onetv.tv.pl=com.telekom.onetv.tv.pl.action.PROGRAM_GUIDE.
+         Netflix's TV shows. -->
     <string-array name="launch_actions">
+        <item>com.netflix.ninja=nflx://www.netflix.com/browse/genre/83</item>
     </string-array>
 
     <!-- A tile's name instead of the app's own: "package=Name". It also shows above the dock. -->
@@ -155,6 +157,9 @@
          still opens on a tap; "hold:scan:490:..." works for scancodes. A key with only a hold entry does nothing
          on a tap. A listed app that is not installed leaves the button doing nothing. Leave empty to omit. -->
     <string-array name="app_keys" translatable="false">
+        <item>scan:469:com.google.android.youtube.tv</item>
+        <!-- The remote's HDMI button (KEY_PROGRAM, scancode 362) switches to the active HDMI input (the TV provider). -->
+        <item>scan:362:input:com.vt.source.external/.hdmi.HdmiTvInputService/HDMI100008</item>
     </string-array>
 
     <!-- Package of the stock launcher, for TVs whose firmware turns it back on after it was disabled. XGIMI's
@@ -177,6 +182,12 @@
          shelf above it. false makes the dock apps simply the first tiles of one plain grid (still in dock_apps
          order, no empty slots), with names under every tile and the glow behind every focused tile. -->
     <bool name="dock_row">true</bool>
+    <!-- One horizontal row of every app instead of the grid: COLUMNS tiles visible, the rest scroll in with Right,
+         the row sits at the bottom and nothing shows below it. Off by default; a theme turns it on. -->
+    <bool name="dock_scroll">false</bool>
+    <!-- Inputs, Wi-Fi and Settings folded into one round gear at the top right, like Google TV: OK drops a menu
+         with the three, hold OK keeps the launcher menu. Off by default; a theme can set "top_menu": true. -->
+    <bool name="top_menu">false</bool>
     <!-- The dock band as light frosted glass, like the Inputs, Wi-Fi and Settings pills, so a sky or wallpaper shows
          through it. false (the default) keeps the solid near-black band, or the cinematic shelf's dark glass. Can
          also be set with "dock_glass": true in a theme's config.json. -->
@@ -220,7 +231,7 @@
 
     <!-- Tiles per row in the grid; the dock always has this many slots. Tiles are 180dp wide at 4 columns and
          shrink to fit from 5 up (about 144dp at 5, 117dp at 6 on a 1080p TV). -->
-    <integer name="columns">4</integer>
+    <integer name="columns">7</integer>
 
     <!-- Basic motion is on; advanced effects are opt-in in the launcher's own Settings screen. -->
     <bool name="animations">true</bool>
@@ -259,11 +270,12 @@
          sets its opacity. Around 60 reads clearly without hiding a wallpaper. Can also be set with
          "sky_intensity": 60 in a theme's config.json. -->
     <integer name="sky_intensity">0</integer>
-    <!-- Where the TV is, in decimal degrees, so the sky's sunrise and sunset glows follow the real sun
-         (computed on the TV, no network). Empty: a fixed temperate day, sunset glow around 19:00.
-         Vilnius: 54.69 and 25.28. -->
-    <string name="latitude" translatable="false"></string>
-    <string name="longitude" translatable="false"></string>
+    <!-- Where the TV is, in decimal degrees. The sky's sunrise and sunset glows follow the real sun (computed on
+         the TV), and the weather is read for this place from Open-Meteo; empty turns the weather off, and the sky
+         falls back to a fixed temperate day with the sunset glow around 19:00. Vilnius: 54.69 and 25.28.
+         Ulaanbaatar: 47.9184 and 106.9177. -->
+    <string name="latitude" translatable="false">47.9184</string>
+    <string name="longitude" translatable="false">106.9177</string>
 
     <!-- Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its
          colour; the shelf gets a larger name, a "Last opened" line (from the apps Home opened) and dock position
