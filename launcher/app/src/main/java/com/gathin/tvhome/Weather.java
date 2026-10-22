@@ -44,19 +44,16 @@ final class Weather {
         /** The WMO code, rain turned into snow where the air is cold enough for it (see {@link #snowIfCold}). */
         final int code;
         final boolean day;
-        /** Snow with gusts of {@link #BLIZZARD_GUST_KMH} or more. */
-        final boolean blizzard;
         /** The next days, tomorrow first; empty if the reply had none. */
         final List<Day> days;
         /** US AQI, or -1 when the air quality read failed. */
         final int aqi;
 
-        Report(int tempC, int feelsC, int code, boolean day, boolean blizzard, List<Day> days, int aqi) {
+        Report(int tempC, int feelsC, int code, boolean day, List<Day> days, int aqi) {
             this.tempC = tempC;
             this.feelsC = feelsC;
             this.code = code;
             this.day = day;
-            this.blizzard = blizzard;
             this.days = days;
             this.aqi = aqi;
         }
@@ -124,16 +121,13 @@ final class Weather {
             // DWD's ICON model: Open-Meteo's default blend here (ECMWF) called light snow over Ulaanbaatar
             // "overcast", when ICON and Google both had snow falling.
             JSONObject reply = get("https://api.open-meteo.com/v1/forecast?" + where + "&models=icon_seamless"
-                    + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,is_day,wind_gusts_10m"
+                    + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,is_day"
                     + "&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=4");
             JSONObject current = reply.getJSONObject("current");
             double temp = current.getDouble("temperature_2m");
             int code = snowIfCold(current.getInt("weather_code"), temp, current.getDouble("relative_humidity_2m"));
-            // The models disagree most about wind: in a Ulaanbaatar blizzard ICON had 26 km/h gusts and ECMWF 52 to
-            // 62. Take the stronger of the two, so a storm that one model sees is not called calm.
-            double gust = Math.max(current.getDouble("wind_gusts_10m"), ecmwfGustOrZero(where));
             return new Report((int) Math.round(temp), (int) Math.round(current.getDouble("apparent_temperature")),
-                    code, current.getInt("is_day") == 1, isSnow(code) && gust >= BLIZZARD_GUST_KMH,
+                    code, current.getInt("is_day") == 1,
                     days(reply.optJSONObject("daily")), aqiOrUnknown(where));
         } catch (IOException | JSONException e) {
             Log.w(TAG, "weather not updated: " + e);
@@ -158,9 +152,6 @@ final class Weather {
         return out;
     }
 
-    /** Gusts at or above this, with snow falling, are called a blizzard. */
-    static final double BLIZZARD_GUST_KMH = 50;
-
     /**
      * The models type precipitation by the air temperature, and around freezing they call rain what reaches the
      * ground as snow (ICON and GFS: "light rain" at 1 °C in a Ulaanbaatar blizzard). The wet-bulb temperature,
@@ -181,19 +172,6 @@ final class Weather {
     static double wetBulb(double t, double rh) {
         return t * Math.atan(0.151977 * Math.sqrt(rh + 8.313659)) + Math.atan(t + rh) - Math.atan(rh - 1.676331)
                 + 0.00391838 * Math.pow(rh, 1.5) * Math.atan(0.023101 * rh) - 4.686035;
-    }
-
-    static boolean isSnow(int code) {
-        return (code >= 71 && code <= 77) || code == 85 || code == 86;
-    }
-
-    private static double ecmwfGustOrZero(String where) {
-        try {
-            return get("https://api.open-meteo.com/v1/forecast?" + where + "&models=ecmwf_ifs025&current=wind_gusts_10m")
-                    .getJSONObject("current").optDouble("wind_gusts_10m", 0);
-        } catch (IOException | JSONException e) {
-            return 0;
-        }
     }
 
     /** The air quality is a separate service: if it fails, the weather still shows, without the pill. */
@@ -229,7 +207,7 @@ final class Weather {
     /** "3° · feels like 1° · Light snow" */
     static String label(Context context, Report report) {
         return context.getString(R.string.weather_line, report.tempC, report.feelsC,
-                context.getString(report.blizzard ? R.string.sky_blizzard : sky(report.code, report.day)));
+                context.getString(sky(report.code, report.day)));
     }
 
     /** "Fri Snow 2°/−10°   Sat Clear 5°/−8°   …" */
