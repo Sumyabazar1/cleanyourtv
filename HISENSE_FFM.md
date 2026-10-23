@@ -10,6 +10,9 @@ quality under the clock, and a Recent apps screen on the remote's Apps button.
 |---|---|
 | ![Gear menu](docs/hisense-ffm/gear.jpg) | ![Recent apps](docs/hisense-ffm/recent.jpg) |
 
+Wallpaper in the screenshots: [Marek Piwnicki](https://unsplash.com/photos/-_OuVFhN5BU) on Unsplash. The
+photos themselves are not in this branch; bring your own.
+
 **Tested on:** Hisense SmartTV 4K FFM (board `lushan`, MediaTek MT9676), Google TV 12 / Android 12, with the
 Bluetooth SmartRC remote. The debloat list for this set is in upstream's
 [`examples/hisense-smarttv-4k-ffm-lushan/`](https://github.com/Gathin23/cleanyourtv/tree/main/examples/hisense-smarttv-4k-ffm-lushan).
